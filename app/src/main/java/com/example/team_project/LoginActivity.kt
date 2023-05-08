@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.provider.ContactsContract.CommonDataKinds.Email
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.team_project.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -21,6 +23,8 @@ import com.kakao.sdk.user.model.User
 class LoginActivity : AppCompatActivity(){
 
     private lateinit var binding : ActivityLoginBinding
+    private lateinit var emailLoginResult : ActivityResultLauncher<Intent>
+    private lateinit var pendingUser: User
 
     private val callback: (OAuthToken?, Throwable?) -> Unit = {token , error ->
         if(error != null) {
@@ -39,6 +43,20 @@ class LoginActivity : AppCompatActivity(){
         setContentView(binding.root)
 
         KakaoSdk.init(this, "2233adf20972a7f833326d9607a219dc")
+
+        emailLoginResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            if (it.resultCode == RESULT_OK) {
+                val email = it.data?.getStringExtra("email")
+
+                if(email == null) {
+                    showErrorToast()
+                    return@registerForActivityResult
+                }else {
+                    signInFirebase(pendingUser , email)
+                }
+            }
+        }
+
 
         binding.kakaoTalkLoginButton.setOnClickListener{
             if(UserApiClient.instance.isKakaoTalkLoginAvailable(this)){
@@ -97,6 +115,9 @@ class LoginActivity : AppCompatActivity(){
         val kakaoEmail = user.kakaoAccount?.email.orEmpty()
 
         if(kakaoEmail.isEmpty()) {
+
+            pendingUser = user
+            emailLoginResult.launch(Intent(this, EmailLoginActivity::class.java))
 
             return
         }

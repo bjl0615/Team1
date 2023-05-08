@@ -39,6 +39,7 @@
                     android:scheme="kakao2233adf20972a7f833326d9607a219dc" />
             </intent-filter>
         </activity>
+        <activity android:name=".EmailLoginActivity" />
         
         <activity android:name=".LoginActivity"
             android:exported="true">
