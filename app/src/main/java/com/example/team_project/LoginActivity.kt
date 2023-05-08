@@ -13,6 +13,7 @@ import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+import com.kakao.sdk.auth.AuthApiClient
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.KakaoSdk
 import com.kakao.sdk.common.model.ClientError
@@ -43,6 +44,14 @@ class LoginActivity : AppCompatActivity(){
         setContentView(binding.root)
 
         KakaoSdk.init(this, "2233adf20972a7f833326d9607a219dc")
+
+        if(AuthApiClient.instance.hasToken()) {
+            UserApiClient.instance.accessTokenInfo { tokenInfo, error ->
+                if(error == null) {
+                    getKakaoAccountInfo()
+                }
+            }
+        }
 
         emailLoginResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK) {
@@ -132,8 +141,6 @@ class LoginActivity : AppCompatActivity(){
             if(it.isSuccessful) {
                 // 다음과정
                 updateFirebaseDatabase(user)
-            }else {
-                showErrorToast()
             }
         }.addOnFailureListener {
             // 이미 가입 된 계정
