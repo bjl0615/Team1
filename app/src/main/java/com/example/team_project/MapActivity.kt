@@ -3,12 +3,11 @@ package com.example.team_project
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
-import android.view.RoundedCorner
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -28,12 +27,15 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
+
 
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarkerClickListener {
@@ -42,7 +44,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
     private lateinit var googleMap: GoogleMap
     private lateinit var fusedLocationClient : FusedLocationProviderClient
 
-    private var trackingPersonId : String? = ""
+    private var trackingPersonId : String = ""
 
     private val markerMap = hashMapOf<String , Marker>()
 
@@ -95,7 +97,38 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         requestLocationPermission()
+        setupEmojiAnimationView()
         setupFirebaseDatabase()
+    }
+
+    private fun setupEmojiAnimationView() {
+        binding.emojiLottieAnimationView.setOnClickListener {
+            if(trackingPersonId != "") {
+                val lastEmoji = mutableMapOf<String, Any>()
+                lastEmoji["type"] = "star"
+                lastEmoji["lastModifier"] = System.currentTimeMillis()
+                Firebase.database.reference.child("Emoji").child(trackingPersonId).updateChildren(lastEmoji)
+            }
+
+            binding.emojiLottieAnimationView.playAnimation()
+
+            binding.dummyLottieAnimationView.animate()
+                .scaleX(3f)
+                .scaleY(3f)
+                .alpha(0f)
+                .withStartAction {
+                    binding.dummyLottieAnimationView.scaleX = 1f
+                    binding.dummyLottieAnimationView.scaleY = 1f
+                    binding.dummyLottieAnimationView.alpha = 1f
+                }.withEndAction {
+                    binding.dummyLottieAnimationView.scaleX = 1f
+                    binding.dummyLottieAnimationView.scaleY = 1f
+                    binding.dummyLottieAnimationView.alpha = 1f
+                }.start()
+        }
+
+        binding.emojiLottieAnimationView.speed = 3f
+        binding.centerLottieAnimationView.speed = 3f
     }
 
     override fun onResume() {
@@ -139,8 +172,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
                 override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                     val person = snapshot.getValue(Person::class.java) ?: return
                     val uid = person.uid ?: return
-
-
                     if(markerMap[uid] == null) {
                         markerMap[uid] = makeNewMarker(person, uid) ?: return
                     }
@@ -175,6 +206,30 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
                 override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
 
                 override fun onCancelled(error: DatabaseError) {}
+
+            })
+
+        Firebase.database.reference.child("Emoji").child(Firebase.auth.currentUser?.uid ?: "")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    binding.centerLottieAnimationView.playAnimation()
+
+                    binding.centerLottieAnimationView.animate()
+                        .scaleX(7f)
+                        .scaleY(7f)
+                        .alpha(0.3f)
+                        .setDuration(binding.centerLottieAnimationView.duration / 3)
+                        .withEndAction {
+                            binding.centerLottieAnimationView.scaleX = 0f
+                            binding.centerLottieAnimationView.scaleY = 0f
+                            binding.centerLottieAnimationView.alpha = 1f
+                        }.start()
+
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    TODO("Not yet implemented")
+                }
 
             })
     }
@@ -249,6 +304,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
 
     override fun onMarkerClick(marker: Marker): Boolean {
         trackingPersonId = marker.tag as? String ?: ""
+
+        val bottomSheetBehavior = BottomSheetBehavior.from(binding.emojiBottomSheetLayout)
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
 
         return false
     }
