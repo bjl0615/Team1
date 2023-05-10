@@ -137,6 +137,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
 
     private fun setupCurrentLocationView() {
         binding.currentLocationButton.setOnClickListener {
+            trackingPersonId = ""
             moveLastLocation()
         }
     }
@@ -188,9 +189,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
         }
 
         // 권한이 있는 상태
-        fusedLocationClient.requestLocationUpdates(locationRequest , locationCallback , Looper.getMainLooper())
-
-
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest ,
+            locationCallback ,
+            Looper.getMainLooper()
+        )
 
         moveLastLocation()
     }
