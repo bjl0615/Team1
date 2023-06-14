@@ -5,5 +5,6 @@ data class Person (
     var latitude : Double? = null,
     var longitude : Double? = null,
     var name : String? = null,
-    var profilePhoto : String? = null
+    var profilePhoto : String? = null,
+    val GpsRoomId : String? = null,
     )

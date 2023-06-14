@@ -8,6 +8,8 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.example.team_project.Key.Companion.DB_URL
+import com.example.team_project.Key.Companion.DB_USERS
 import com.example.team_project.databinding.ActivityLoginBinding
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.ktx.auth
@@ -90,11 +92,9 @@ class LoginActivity : AppCompatActivity(){
                         Log.e("loginActivity" , "token== $token")
                         //로그인을 성공
                     }
-
                 }
             }else {
                 // 카카오 계정 로그인
-
                 UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
             }
         }
@@ -148,6 +148,9 @@ class LoginActivity : AppCompatActivity(){
                 Firebase.auth.signInWithEmailAndPassword(email , uId).addOnCompleteListener { result ->
                     if(result.isSuccessful) {
                         // 다음과정
+
+//                        Firebase.database.reference.child()
+
                         updateFirebaseDatabase(user)
                     } else {
                         showErrorToast()

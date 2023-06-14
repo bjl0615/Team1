@@ -1,6 +1,7 @@
 package com.example.team_project
 
 import android.Manifest
+import android.app.Service
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.appcompat.app.AppCompatActivity
@@ -32,24 +33,17 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
-import java.io.BufferedReader
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileReader
-import java.io.FileWriter
-import java.nio.Buffer
+import java.text.SimpleDateFormat
+import java.time.LocalDate
 
 
-class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarkerClickListener {
+class MapActivity : AppCompatActivity(),  OnMapReadyCallback , GoogleMap.OnMarkerClickListener {
 
     private lateinit var binding : ActivityMapBinding
     private lateinit var googleMap: GoogleMap
     private lateinit var fusedLocationClient : FusedLocationProviderClient
-    private var lat = 0.0
-    private var long = 0.0
 
     private var trackingPersonId : String = ""
 
@@ -76,25 +70,30 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
 
     private val locationCallback = object: LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
-            var uid: String? = null
+            val currentTime : Long = System.currentTimeMillis()
+            val dataFormat1 = SimpleDateFormat("yyyy-MM-dd hh:mm:ss")
+            val nowTime = dataFormat1.format(currentTime)
+            val onlyDate : LocalDate = LocalDate.now()
             var locationMap : MutableMap<String, Any>? = null
+            var uid: String? = null
+            var result : String = ""
             // 새로 요청된 위치 정보
             for(location in locationResult.locations) {
-                Log.e("MapActivity", "onLocationResult : ${location.latitude} ${location.longitude}")
                 uid = Firebase.auth.currentUser?.uid.orEmpty()
-                locationMap = mutableMapOf<String , Any>()
-                locationMap["latitude"] = location.latitude
-                locationMap["longitude"] = location.longitude
-                Firebase.database.reference.child("Person").child(uid).updateChildren(locationMap)
-                lat = location.latitude
-                long = location.longitude
-                val result = "$lat , $long \n"
-                showTextFile(result)
+                locationMap = mutableMapOf<String, Any>()
+                result = "${location.latitude} " + "," + " ${location.longitude}"
+                Log.e("현재 시간 : " , "$nowTime")
+                locationMap["$nowTime"] = result
+                Firebase.database.reference.child("Person").child(uid).child("$onlyDate").updateChildren(locationMap)
+//                    Firebase.database.reference.child("Person").child(uid!!)
+//                        .updateChildren(locationMap!!)
                 // TODO 파이어베이스 내 위치 업로드
                 // 지도에 마커 움직이기
+
             }
         }
     }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -112,55 +111,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
         setupCurrentLocationView()
         setupFirebaseDatabase()
 
-    }
-
-    fun showTextFile(result1 : String) {
-        val dir = filesDir.absolutePath
-        val filename = "실제 GPS.txt"
-        val content = "$lat \n"
-
-        writeTextFile(dir , filename , result1)
-
-        val result = readTextFile(dir + "/" + filename)
-        Log.d("파일 내용" , result)
-    }
-
-    fun readTextFile(fullpath:String) : String {
-        val file = File(fullpath)
-        if(!file.exists()){
-            Log.e("파일 없음 : " , "Asddddddddddddddd")
-            return ""
-        }
-
-        val reader = FileReader(file)
-        val buffer = BufferedReader(reader)
-
-        var temp:String? = ""
-        var result = StringBuffer()
-
-        while(true) {
-            temp = buffer.readLine() // 줄단위로 읽어서 임시 저장
-            if(temp == null) break
-            else result.append(temp).append("\n")
-        }
-        buffer.close()
-        return result.toString()
-    }
-
-    fun writeTextFile(directory : String, filename:String, content:String) {
-        val dir = File(directory)
-
-        if(!dir.exists()){ //dir이 존재 하지 않을때
-            dir.mkdirs() //mkdirs : 중간에 directory가 없어도 생성됨
-        }
-
-        val writer = FileWriter(directory + "/" + filename, true)
-        //true는 파일을 이어쓰는 것을 의미
-
-        //쓰기 속도 향상
-        val buffer = BufferedWriter(writer)
-        buffer.write(content)
-        buffer.close()
     }
 
     private fun setupEmojiAnimationView() {
@@ -233,7 +183,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback , GoogleMap.OnMarker
 
     private fun getCurrentLocation() {
         val locationRequest = LocationRequest
-            .Builder(Priority.PRIORITY_HIGH_ACCURACY , 5 * 1000)
+            .Builder(Priority.PRIORITY_HIGH_ACCURACY , 60 * 1000)
             .build()
 
         if (ActivityCompat.checkSelfPermission(
